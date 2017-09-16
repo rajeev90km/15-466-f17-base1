@@ -252,8 +252,10 @@ int main(int argc, char **argv) {
     GameObject trees[15];
     
     for(int i=0;i<15;i++){
-        GameObject tree(glm::vec2(5.0,5.0),glm::vec2(0.0f,0.5f),glm::vec2(0.5f,1.0f),glm::vec2(1.0f,1.0f));
-        trees[0] = tree;
+        float randX = rand() % 32 - 16;
+        float randY = rand() % 32 - 16;
+        GameObject tree(glm::vec2(randX,randY),glm::vec2(0.0f,0.5f),glm::vec2(0.5f,1.0f),glm::vec2(1.0f,1.0f));
+        trees[i] = tree;
     }
     
     GameObject tree(glm::vec2(5.0,5.0),glm::vec2(0.0f,0.5f),glm::vec2(0.5f,1.0f),glm::vec2(1.0f,1.0f));
@@ -370,20 +372,20 @@ int main(int argc, char **argv) {
                 }
             }
             
-//
+            for(int i=0;i<15;i++){
             if(
                (
                     //left
-                    (player.position[0] < tree.position[0] && player.position[0] + player.sinfo.rad[0] > tree.position[0]) ||
+                    (player.position[0] < trees[i].position[0] && player.position[0] + player.sinfo.rad[0] > trees[i].position[0]) ||
                     //right
-                    (player.position[0] > tree.position[0] && tree.position[0] + tree.sinfo.rad[0] > player.position[0])
+                    (player.position[0] > trees[i].position[0] && trees[i].position[0] + trees[i].sinfo.rad[0] > player.position[0])
                ) &&
                
                (
                     //top
-                    (player.position[1] > tree.position[1] && player.position[1] - player.sinfo.rad[1] < tree.position[1])
+                    (player.position[1] > trees[i].position[1] && player.position[1] - player.sinfo.rad[1] < trees[i].position[1])
                     //bottom
-                    || (player.position[1] < tree.position[1] && tree.position[1] - tree.sinfo.rad[1] < player.position[1])
+                    || (player.position[1] < trees[i].position[1] && trees[i].position[1] - trees[i].sinfo.rad[1] < player.position[1])
                 )
             )
             
@@ -398,7 +400,7 @@ int main(int argc, char **argv) {
             else{
                 isPlayerColliding = false;
             }
-            
+            }
             
             
             
@@ -437,7 +439,8 @@ int main(int argc, char **argv) {
             
             draw_sprite(heart.sinfo, glm::vec2(camera.at[0] - heart.position[0] * aspect_ratio,camera.at[1] + heart.position[1]), 0.0f);
             
-            draw_sprite(tree.sinfo, glm::vec2(tree.position[0] * aspect_ratio,tree.position[1]), 0.0f);
+            for(int i=0;i<15;i++)
+                draw_sprite(trees[i].sinfo, glm::vec2(trees[i].position[0] * aspect_ratio,trees[i].position[1]), 0.0f);
 
 
 			glBindBuffer(GL_ARRAY_BUFFER, buffer);
