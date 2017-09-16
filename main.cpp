@@ -186,29 +186,77 @@ int main(int argc, char **argv) {
 
 	//------------ sprite info ------------
 	struct SpriteInfo {
-		glm::vec2 min_uv = glm::vec2(0.0f);
-		glm::vec2 max_uv = glm::vec2(1.0f);
-		glm::vec2 rad = glm::vec2(0.5f);
+		glm::vec2 min_uv;
+		glm::vec2 max_uv;
+        glm::vec2 rad;
+        
+        
+        public:
+            void setSpriteInfo(glm::vec2 min, glm::vec2 max, glm::vec2 r){
+                min_uv = min;
+                max_uv = max;
+                rad = r;
+            }
 	};
+    
+    struct GameObject{
+        
+        public:
+            glm::vec2 position;
+            glm::vec2 min;
+            glm::vec2 max;
+        
+        SpriteInfo sinfo;
+        
+        GameObject(){
+        
+        }
+        
+        GameObject(glm::vec2 pos, glm::vec2 min, glm::vec2 max, glm::vec2 scale){
+            position = pos;
+            sinfo.setSpriteInfo(min,max,scale);
+        }
+    };
+    
+    float speed = 0.15f;
+    bool isLeftPressed = false;
+    bool isRightPressed = false;
+    bool isUpPressed = false;
+    bool isDownPressed = false;
+    bool isPlayerColliding = false;
 
 
-	auto load_sprite = [](std::string const &name) -> SpriteInfo {
-		SpriteInfo info;
-		//TODO: look up sprite name in table of sprite infos
-		return info;
-	};
+//	auto load_sprite = [](std::string const &name) -> SpriteInfo {
+//		SpriteInfo info;
+//		//TODO: look up sprite name in table of sprite infos
+//		return info;
+//	};
 
 
 	//------------ game state ------------
 
-	glm::vec2 mouse = glm::vec2(0.0f, 0.0f); //mouse position in [-1,1]x[-1,1] coordinates
+//	glm::vec2 mouse = glm::vec2(0.0f, 0.0f); //mouse position in [-1,1]x[-1,1] coordinates
 
 	struct {
 		glm::vec2 at = glm::vec2(0.0f, 0.0f);
-		glm::vec2 radius = glm::vec2(10.0f, 10.0f);
+		glm::vec2 radius = glm::vec2(16.0f,16.0f);
 	} camera;
 	//correct radius for aspect ratio:
-	camera.radius.x = camera.radius.y * (float(config.size.x) / float(config.size.y));
+    float aspect_ratio = (float(config.size.x) / float(config.size.y));
+	camera.radius.x = camera.radius.y * aspect_ratio;
+    
+    GameObject player(glm::vec2(10.0, 10.0),glm::vec2(0.5f,0.5f),glm::vec2(1.0f,1.0f),glm::vec2(1.0f,1.0f));
+    
+    GameObject heart(glm::vec2(15.0,15.0),glm::vec2(0.5f,0.0f),glm::vec2(1.0f,0.5f),glm::vec2(1.0f,1.0f));
+    
+    GameObject trees[15];
+    
+    for(int i=0;i<15;i++){
+        GameObject tree(glm::vec2(5.0,5.0),glm::vec2(0.0f,0.5f),glm::vec2(0.5f,1.0f),glm::vec2(1.0f,1.0f));
+        trees[0] = tree;
+    }
+    
+    GameObject tree(glm::vec2(5.0,5.0),glm::vec2(0.0f,0.5f),glm::vec2(0.5f,1.0f),glm::vec2(1.0f,1.0f));
 
 	//------------ game loop ------------
 
@@ -217,10 +265,46 @@ int main(int argc, char **argv) {
 		static SDL_Event evt;
 		while (SDL_PollEvent(&evt) == 1) {
 			//handle input:
-			if (evt.type == SDL_MOUSEMOTION) {
-				mouse.x = (evt.motion.x + 0.5f) / float(config.size.x) * 2.0f - 1.0f;
-				mouse.y = (evt.motion.y + 0.5f) / float(config.size.y) *-2.0f + 1.0f;
-			} else if (evt.type == SDL_MOUSEBUTTONDOWN) {
+			if (evt.type == SDL_KEYDOWN) {
+				
+                switch(evt.key.keysym.sym){
+                    case SDLK_LEFT:
+                        isLeftPressed = true;
+                        break;
+                    case SDLK_RIGHT:
+                        isRightPressed = true;
+                        break;
+                    case SDLK_UP:
+                        isUpPressed = true;
+                        break;
+                    case SDLK_DOWN:
+                        isDownPressed = true;
+                        break;
+                    default:
+                        break;
+                }
+                
+			}
+            else if (evt.type == SDL_KEYUP) {
+                switch(evt.key.keysym.sym){
+                    case SDLK_LEFT:
+                        isLeftPressed = false;
+                        break;
+                    case SDLK_RIGHT:
+                        isRightPressed = false;
+                        break;
+                    case SDLK_UP:
+                        isUpPressed = false;
+                        break;
+                    case SDLK_DOWN:
+                        isDownPressed = false;
+                        break;
+                    default:
+                        break;
+                }
+
+            }
+            else if (evt.type == SDL_MOUSEBUTTONDOWN) {
 			} else if (evt.type == SDL_KEYDOWN && evt.key.keysym.sym == SDLK_ESCAPE) {
 				should_quit = true;
 			} else if (evt.type == SDL_QUIT) {
@@ -245,7 +329,7 @@ int main(int argc, char **argv) {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-
+        
 		{ //draw game state:
 			std::vector< Vertex > verts;
 
@@ -253,9 +337,9 @@ int main(int argc, char **argv) {
 			auto rect = [&verts](glm::vec2 const &at, glm::vec2 const &rad, glm::u8vec4 const &tint) {
 				verts.emplace_back(at + glm::vec2(-rad.x,-rad.y), glm::vec2(0.0f, 0.0f), tint);
 				verts.emplace_back(verts.back());
-				verts.emplace_back(at + glm::vec2(-rad.x, rad.y), glm::vec2(0.0f, 1.0f), tint);
-				verts.emplace_back(at + glm::vec2( rad.x,-rad.y), glm::vec2(1.0f, 0.0f), tint);
-				verts.emplace_back(at + glm::vec2( rad.x, rad.y), glm::vec2(1.0f, 1.0f), tint);
+				verts.emplace_back(at + glm::vec2(-rad.x, rad.y), glm::vec2(0.0f, 0.5f), tint);
+				verts.emplace_back(at + glm::vec2( rad.x,-rad.y), glm::vec2(0.5f, 0.0f), tint);
+				verts.emplace_back(at + glm::vec2( rad.x, rad.y), glm::vec2(0.5f, 0.5f), tint);
 				verts.emplace_back(verts.back());
 			};
 
@@ -276,12 +360,84 @@ int main(int argc, char **argv) {
 			};
 
 
-			//Draw a sprite "player" at position (5.0, 2.0):
-			static SpriteInfo player = load_sprite("player"); //TODO: hoist
-			draw_sprite(player, glm::vec2(5.0, 2.0), 0.2f);
+//            static float x = 0.0f;
+//            x+=0.5f;
+//            camera.at = glm::vec2(x,0.0f);
 
-			rect(glm::vec2(0.0f, 0.0f), glm::vec2(4.0f), glm::u8vec4(0xff, 0x00, 0x00, 0xff));
-			rect(mouse * camera.radius + camera.at, glm::vec2(4.0f), glm::u8vec4(0xff, 0xff, 0xff, 0x88));
+            for(int i=-22;i<43;i++){
+                for(int j=0;j<16;j++){
+                    rect(glm::vec2((-15.25f * aspect_ratio)+(i*2),15.0f - (j*2)), glm::vec2(1.0f,1.0f), glm::u8vec4(0xff,0xff,0xff,0xff));
+                }
+            }
+            
+//
+            if(
+               (
+                    //left
+                    (player.position[0] < tree.position[0] && player.position[0] + player.sinfo.rad[0] > tree.position[0]) ||
+                    //right
+                    (player.position[0] > tree.position[0] && tree.position[0] + tree.sinfo.rad[0] > player.position[0])
+               ) &&
+               
+               (
+                    //top
+                    (player.position[1] > tree.position[1] && player.position[1] - player.sinfo.rad[1] < tree.position[1])
+                    //bottom
+                    || (player.position[1] < tree.position[1] && tree.position[1] - tree.sinfo.rad[1] < player.position[1])
+                )
+            )
+            
+            {
+                isPlayerColliding = true;
+                
+                if(player.position[0] < tree.position[0])
+                    player.position[0] -=0.1f;
+                if(player.position[0] > tree.position[0])
+                    player.position[0] +=0.1f;
+            }
+            else{
+                isPlayerColliding = false;
+            }
+            
+            
+            
+            
+            if(!isPlayerColliding){
+                if(player.position[0]<-16.0f)
+                    camera.at[0] = -32.0f * aspect_ratio;
+            
+                if(player.position[0]>-16.0f && player.position[0]<16.0f)
+                    camera.at[0] = 0.0f;
+            
+                if(player.position[0]>16.0f)
+                    camera.at[0] = 32.0f * aspect_ratio;
+            
+                //Move player
+                if(isLeftPressed){
+                    if(player.position[0]>-48.0f)
+                        player.position[0] -= speed;
+                
+                }
+                if(isRightPressed){
+                    if(player.position[0]<48.0f)
+                        player.position[0] += speed;
+                }
+                if(isUpPressed){
+                    if(player.position[1]<14.0f)
+                        player.position[1] += speed;
+                }
+                if(isDownPressed){
+                    if(player.position[1]>-16.0f)
+                        player.position[1] -= speed;
+                }
+            }
+            
+            //draw sprite
+            draw_sprite(player.sinfo, glm::vec2(player.position[0] * aspect_ratio,player.position[1]), 0.0f);
+            
+            draw_sprite(heart.sinfo, glm::vec2(camera.at[0] - heart.position[0] * aspect_ratio,camera.at[1] + heart.position[1]), 0.0f);
+            
+            draw_sprite(tree.sinfo, glm::vec2(tree.position[0] * aspect_ratio,tree.position[1]), 0.0f);
 
 
 			glBindBuffer(GL_ARRAY_BUFFER, buffer);
